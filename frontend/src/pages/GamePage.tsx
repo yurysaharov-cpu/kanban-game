@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, useDroppable } from '@dnd-kit/core';
 import { gameApi } from '../api/game';
 import { useGameStore } from '../store/gameStore';
 import { Story, TeamMember, Stage, CfdData, RevenuePoint, CycleTimePoint } from '../types';
@@ -115,6 +115,9 @@ export default function GamePage() {
     }
   }
 
+  const { setNodeRef: deckRef, isOver: isDeckOver } = useDroppable({ id: 'deck' });
+  const { setNodeRef: expDeckRef, isOver: isExpDeckOver } = useDroppable({ id: 'exp-deck' });
+
   if (loading || !state) {
     return <div className="min-h-screen bg-[#003f5e] flex items-center justify-center text-white text-xl">Loading...</div>;
   }
@@ -127,6 +130,7 @@ export default function GamePage() {
     });
 
   const deckStories = state.Stories.filter((s) => s.stage === 'deck');
+  const expediteDeck = deckStories.filter((s) => s.Expedited);
   const standardDeck = deckStories.filter((s) => s.Name.startsWith('S'));
   const fixedDeck = deckStories.filter((s) => s.Name.startsWith('F'));
   const intangibleDeck = deckStories.filter((s) => s.Name.startsWith('I'));
@@ -225,8 +229,18 @@ export default function GamePage() {
             {/* Expedite lane */}
             <div style={{ height: 92, borderBottom: '1px solid #bbb', backgroundColor: '#eee', display: 'flex' }}>
               {/* Backlog-expedite */}
-              <div style={{ width: COL_WIDTHS.deck, height: 92, borderRight: '1px dotted #bbb', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: 11 }}>
-                expedite
+              <div
+                ref={expDeckRef}
+                style={{ width: COL_WIDTHS.deck, height: 92, borderRight: '1px dotted #bbb', flexShrink: 0, position: 'relative', backgroundColor: isExpDeckOver ? 'rgba(74,153,255,0.1)' : undefined, overflowY: 'hidden' }}
+              >
+                {expediteDeck.length === 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#aaa', fontSize: 11 }}>expedite</div>
+                )}
+                {expediteDeck.map((s) => (
+                  <div key={s.StoryId} style={{ position: 'relative', height: 84, flexShrink: 0 }}>
+                    <StoryCard story={s} style={{ left: (COL_WIDTHS.deck - 130) / 2, top: 4 }} />
+                  </div>
+                ))}
               </div>
               {BOARD_STAGES.map((stage) => (
                 <BoardColumn
@@ -244,10 +258,40 @@ export default function GamePage() {
             {/* Standard lane */}
             <div style={{ height: 440, backgroundColor: '#fafafa', display: 'flex' }}>
               {/* Backlog deck */}
-              <div style={{ width: COL_WIDTHS.deck, height: 440, borderRight: '1px dotted #bbb', flexShrink: 0, position: 'relative', backgroundColor: '#eee' }}>
-                <div style={{ position: 'absolute', top: 8, left: 8, fontSize: 11, color: '#888' }}>Fixed ({fixedDeck.length})</div>
-                <div style={{ position: 'absolute', top: 140, left: 8, fontSize: 11, color: '#888' }}>Standard ({standardDeck.length})</div>
-                <div style={{ position: 'absolute', top: 272, left: 8, fontSize: 11, color: '#888' }}>Intangible ({intangibleDeck.length})</div>
+              <div
+                ref={deckRef}
+                style={{ width: COL_WIDTHS.deck, height: 440, borderRight: '1px dotted #bbb', flexShrink: 0, backgroundColor: isDeckOver ? 'rgba(74,153,255,0.1)' : '#eee', overflowY: 'auto' }}
+              >
+                {fixedDeck.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 11, color: '#888', padding: '4px 0 2px 8px' }}>Fixed ({fixedDeck.length})</div>
+                    {fixedDeck.map((s) => (
+                      <div key={s.StoryId} style={{ position: 'relative', height: 84 }}>
+                        <StoryCard story={s} style={{ left: (COL_WIDTHS.deck - 130) / 2, top: 2 }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {standardDeck.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 11, color: '#888', padding: '4px 0 2px 8px' }}>Standard ({standardDeck.length})</div>
+                    {standardDeck.map((s) => (
+                      <div key={s.StoryId} style={{ position: 'relative', height: 84 }}>
+                        <StoryCard story={s} style={{ left: (COL_WIDTHS.deck - 130) / 2, top: 2 }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {intangibleDeck.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 11, color: '#888', padding: '4px 0 2px 8px' }}>Intangible ({intangibleDeck.length})</div>
+                    {intangibleDeck.map((s) => (
+                      <div key={s.StoryId} style={{ position: 'relative', height: 84 }}>
+                        <StoryCard story={s} style={{ left: (COL_WIDTHS.deck - 130) / 2, top: 2 }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               {BOARD_STAGES.map((stage) => (
                 <BoardColumn
