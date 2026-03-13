@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  games     Game[]
+  createdAt DateTime @default(now())
+}
+
+model Game {
+  id           Int          @id @default(autoincrement())
+  userId       Int
+  user         User         @relation(fields: [userId], references: [id])
+  gameType     String       // "Standard" | "V2"
+  currentDay   Int          @default(0)
+  totalRevenue Int          @default(0)
+  isCompleted  Boolean      @default(false)
+  wipReady     Int          @default(5)
+  wipAnalysis  Int          @default(3)
+  wipDev       Int          @default(5)
+  wipTest      Int          @default(3)
+  stories      Story[]
+  teamMembers  TeamMember[]
+  chartDays    ChartDay[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Story {
+  id              Int     @id @default(autoincrement())
+  gameId          Int
+  game            Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  name            String
+  storyType       String  // S | E | I | F
+  value           Int
+  stage           String  @default("deck")
+  storyOrder      Int     @default(0)
+  analysis        Int
+  analysisDone    Int     @default(0)
+  development     Int
+  developmentDone Int     @default(0)
+  test            Int
+  testDone        Int     @default(0)
+  blocked         Int     @default(0)
+  blockedDone     Int     @default(0)
+  blockedLabel    String?
+  dayReady        Int     @default(0)
+  dayDeployed     Int     @default(0)
+  dueDay          Int     @default(0)
+  expedited       Boolean @default(false)
+  isBlocked       Boolean @default(false)
+  label           String?
+}
+
+model TeamMember {
+  id              Int     @id @default(autoincrement())
+  gameId          Int
+  game            Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  role            String  // analyst | developer | tester
+  active          Boolean @default(true)
+  assignedStoryId Int?
+}
+
+model ChartDay {
+  id          Int  @id @default(autoincrement())
+  gameId      Int
+  game        Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  day         Int
+  ready       Int  @default(0)
+  analysis    Int  @default(0)
+  development Int  @default(0)
+  test        Int  @default(0)
+  deployed    Int  @default(0)
+  revenue     Int  @default(0)
+}
+
+model Leaderboard {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  username  String
+  gameType  String
+  score     Int
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, gameType])
+}
